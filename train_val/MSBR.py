@@ -35,7 +35,7 @@ class MSBR:
         self.args   = args
         self.k      = k
         self.stages = stages
-        # self.training = 
+        # self.training =
 
     def build_nets(self):
         def build_detectors(self):
@@ -53,7 +53,7 @@ class MSBR:
                     new_state_dict[name] = v
                 self.detector.load_state_dict(new_state_dict)
             pass
-    
+
         def build_flow_estimator(self):
             # we have alternative choice of using flownet2 to estimate optical, however we do not use here.
             self.flownet = FlowNetC(batchNorm=True)
@@ -70,7 +70,7 @@ class MSBR:
                 self.flownet.load_state_dict(new_state_dict)
             pass
 
-        
+
         # build two models/nets
         self.build_detectors()
         self.criterion_d = nn.MSELoss().cuda()
@@ -87,20 +87,21 @@ class MSBR:
         # setup optimizer
         self.optimizer = torch.optim.Adam(params, lr=self.config.base_lr)
 
-    
+
     def foward_compute_losses(self, inputs_detector, inputs_flownet, training=True):
         def _computeL_sup(heatmaps_d, heatmap_gt, criterion):
             loss_ = [criterion(ht, heatmap_var) * heat_weight for ht in output]
             loss_sup = 0.
-            loss_sup += l for l in loss_
+            for l in loss_:
+                loss_sup += l
             return loss_sup
 
         def _computeL_crossview(heatmaps_cv_s, heatmaps_cv_t, criterion):
             loss_ = criterion(heatmaps_cv_s[0], heatmaps_cv_t[0])
 
             return loss_
-            
-        
+
+
         def _computeL_f(input_f_s, input_f_t, flows, criterion):
             scales_f = len(flows)
             loss_f = 0.
@@ -112,7 +113,7 @@ class MSBR:
 
                 loss_f += criterion(input_f_t_w, input_f_t)
             return loss_f
-        
+
         # extract feed-in
         input_sup = inputs_detector['sup_in']
         heatmaps_sup_gt = inputs_detector['sup_gt']
@@ -122,8 +123,8 @@ class MSBR:
 
         input_f_t = inputs_flownet['f_t_in']
         input_f_s = inputs_flownet['f_s_in']
-        
- 
+
+
         # detector forward and loss
         ## supervision loss
         heatmaps_sup    = self.detector.forward(input_sup)
@@ -140,11 +141,11 @@ class MSBR:
 
         # total loss
         self.loss = self.w_sup * self.loss_sup +self.w_crossview * self.loss_crossview #+ self.w_f * self.loss_f
-        
+
 
 
         pass
-    
+
     def train_(self):
         self.foward_compute_losses()
 
@@ -154,9 +155,8 @@ class MSBR:
         self.optimizer.step()
 
         pass
-    
+
     def eval_(self):
         with torch.no_grad():
 
-        pass
-
+            pass

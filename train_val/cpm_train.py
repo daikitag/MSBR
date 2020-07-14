@@ -88,7 +88,7 @@ def train(model, args, train_loader):
     losses_cv   = AverageMeter()
     losses_f    = AverageMeter()
     losses      = AverageMeter()
-    
+
 
     end = time.time()
     iters = config.start_iters
@@ -100,10 +100,10 @@ def train(model, args, train_loader):
     model.detector.train()
     model.flownet.train()
 
-    
 
-    for i, (input_sup, 
-            heatmap_sup_gt, 
+
+    for i, (input_sup,
+            heatmap_sup_gt,
             input_cv,
             heatmap_cv_gt,
             input_f_t,
@@ -121,12 +121,12 @@ def train(model, args, train_loader):
         input_f_s       = input_f_s.cuda()
 
         # form dict for input and supervision
-        inputs_detector = { 'sup_in': input_sup, 
-                            'sup_gt': heatmap_sup_gt, 
+        inputs_detector = { 'sup_in': input_sup,
+                            'sup_gt': heatmap_sup_gt,
                             'cv_s_in':  input_cv_s,
                             'cv_t_in':  input_cv_t}
-                            
-        inputs_flownet  = { 'f_t_in': input_f_t, 
+
+        inputs_flownet  = { 'f_t_in': input_f_t,
                             'f_s_in': input_f_s}
 
         model.foward_compute_losses(inputs_detector, inputs_flownet)
@@ -138,7 +138,7 @@ def train(model, args, train_loader):
         losses_cv.update(model.loss_cv.data[0], input_sup.size(0))
         losses_f.update(model.loss_f.data[0], input_sup.size(0))
         losses.update(model.loss.data[0], input_sup.size(0))
-        
+
 
         # gradient back-propag
         model.train_()
@@ -162,7 +162,7 @@ def train(model, args, train_loader):
 
 
     return losses_sup, losses_f
- 
+
 def val(model, args, val_loader, criterion, config):
     global e
     batch_time = AverageMeter()
@@ -180,8 +180,8 @@ def val(model, args, val_loader, criterion, config):
     model.flownet.eval()
     # model.eval()
     for j, (input, heatmap, centermap) in enumerate(val_loader):
-        heatmap = heatmap.cuda(async=True)
-        centermap = centermap.cuda(async=True)
+        heatmap = heatmap.cuda(device=None, non_blocking=False)
+        centermap = centermap.cuda(device=None, non_blocking=False)
 
         input_var = torch.autograd.Variable(input)
         heatmap_var = torch.autograd.Variable(heatmap)
@@ -192,7 +192,9 @@ def val(model, args, val_loader, criterion, config):
         loss_ = [criterion(ht, heatmap_var) * heat_weight for ht in output]
 
         loss = 0.
-        loss += l for l in loss_
+        for l in loss_:
+            loss += l
+
         losses.update(loss.data[0], input.size(0))
         for cnt, l in enumerate(
                 [loss1, loss2, loss3, loss4, loss5, loss6]):
@@ -218,13 +220,13 @@ def val(model, args, val_loader, criterion, config):
             losses.reset()
             for cnt in range(6):
                 losses_list[cnt].reset()
-        
+
 
 
 
 
 def main(args):
-    
+
     # build train and val set
     train_dir = args.train_dir
     val_dir = args.val_dir
@@ -251,7 +253,7 @@ def main(args):
                                                     ])),
             batch_size=config.batch_size, shuffle=False,
             num_workers=config.workers, pin_memory=True)
-    
+
     # build model
     model = MSBR(config=config, args=args, k=14, stages=config.stages)
 
@@ -261,20 +263,23 @@ def main(args):
     return model, train_loader, val_loader
 
 
-    
+
 
 
 if __name__ == '__main__':
 
     # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     args = parse()
+    import pdb; pdb.set_trace();
     model, train_loader, val_loader = main(args)
 
     if args.pretrained_d is not 'None' and args.val_dir is not None and config.test_interval != 0:
         val_loss_d, val_loss_f = val(model, args, val_loader, criterion, config)
-    
+
+    global e
+
     for e in range(args.n_epochs):
-        global e
+
         train_loss_d, train_loss_f = train(model, args, train_loader)
 
         if args.val_dir is not None and config.test_interval != 0:
