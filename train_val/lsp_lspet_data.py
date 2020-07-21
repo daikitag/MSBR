@@ -29,7 +29,7 @@ def read_mat_file(mode, root_dir, img_list):
         Notice:
             lsp_dataset differ from lspet dataset
     """
-    mat_arr = scipy.io.loadmat(os.path.join(root_dir, 'joints.mat'))['joints']
+    mat_arr = scipy.io.loadmat(os.path.join(root_dir, 'joints.mat'))['val']
     # lspnet (14,3,10000)
     if mode == 'lspet':
         lms = mat_arr.transpose([2, 1, 0])
@@ -125,5 +125,3 @@ class LSP_Data(data.Dataset):
 
     def __len__(self):
         return len(self.img_list)
-
-

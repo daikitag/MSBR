@@ -72,10 +72,10 @@ class MSBR:
 
 
         # build two models/nets
-        self.build_detectors()
+        build_detectors(self)
         self.criterion_d = nn.MSELoss().cuda()
 
-        self.build_flow_estimator()
+        build_flow_estimator(self)
         self.criterion_f = nn.MSELoss().cuda()
 
         # extract params from two models

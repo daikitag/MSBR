@@ -1,4 +1,5 @@
 # -*-coding:UTF-8-*-
+print('start cpm_train')
 import argparse
 import time
 import torch.optim
@@ -15,8 +16,11 @@ import lsp_lspet_data
 import Mytransforms
 from MSBR import MSBR
 
+print('all modules successfully imported')
 
 def parse():
+    print('Parse defined here')
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str,
                         dest='config', help='to set the parameters')
@@ -45,11 +49,13 @@ def parse():
     # parser.add_argument('--print_out_freq', default=20, type=int,
     #                     dest='print_out_freq', help='number of epochs')
     return parser.parse_args()
+    print('return all parser')
 
 
 
 
 def get_parameters(model, config, isdefault=True):
+    print('get_parameters will start')
 
     if isdefault:
         return model.parameters(), [1.]
@@ -58,6 +64,7 @@ def get_parameters(model, config, isdefault=True):
     lr_4 = []
     lr_8 = []
     params_dict = dict(model.module.named_parameters())
+    print('start for loop in get_parameters')
     for key, value in params_dict.items():
         if ('model1_' not in key) and ('model0.' not in key):
             if key[-4:] == 'bias':
@@ -74,13 +81,16 @@ def get_parameters(model, config, isdefault=True):
             {'params': lr_8, 'lr': config.base_lr * 8.}]
 
     return params, [1., 2., 4., 8.]
+    print('get_parameters finished')
 
 # def MODEL()
 
 
 def train(model, args, train_loader):
+    print('Train called')
 
     global e
+    config = Config(args.config)
 
     batch_time  = AverageMeter()
     data_time   = AverageMeter()
@@ -91,14 +101,17 @@ def train(model, args, train_loader):
 
 
     end = time.time()
+    print(config.items())
     iters = config.start_iters
-    best_model = config.best_model
+    # best_model = config.best_model
 
     heat_weight = 46 * 46 * 15 / 1.0
 
 
     model.detector.train()
     model.flownet.train()
+
+    print('Models defined in train()')
 
 
 
@@ -109,6 +122,7 @@ def train(model, args, train_loader):
             input_f_t,
             input_f_s) in enumerate(train_loader):
 
+        print('begin for loop line 125')
         data_time.update(time.time() - end)
 
 
@@ -160,10 +174,13 @@ def train(model, args, train_loader):
             print(time.strftime(
             '%Y-%m-%d %H:%M:%S -----------------------------------------------------------------------------------------------------------------\n',time.localtime()))
 
+    print('train perhaps finished')
 
     return losses_sup, losses_f
 
 def val(model, args, val_loader, criterion, config):
+    print('val called')
+
     global e
     batch_time = AverageMeter()
     data_time = AverageMeter()
@@ -171,7 +188,7 @@ def val(model, args, val_loader, criterion, config):
     losses_list = [AverageMeter() for i in range(6)]
     end = time.time()
     iters = config.start_iters
-    best_model = config.best_model
+    # best_model = config.best_model
 
     heat_weight = 46 * 46 * 15 / 1.0
 
@@ -226,6 +243,7 @@ def val(model, args, val_loader, criterion, config):
 
 
 def main(args):
+    print('main will start here')
 
     # build train and val set
     train_dir = args.train_dir
@@ -233,6 +251,8 @@ def main(args):
 
     config = Config(args.config)
     cudnn.benchmark = True
+
+    print('Start train_loader')
 
     # train
     train_loader = torch.utils.data.DataLoader(
@@ -244,6 +264,7 @@ def main(args):
             ])),
             batch_size=config.batch_size, shuffle=True,
             num_workers=config.workers, pin_memory=True)
+    print('Dataset Loaded!')
     # val
     if args.val_dir is not None and config.test_interval != 0:
         # val
@@ -255,9 +276,13 @@ def main(args):
             num_workers=config.workers, pin_memory=True)
 
     # build model
+    print('build model')
+
     model = MSBR(config=config, args=args, k=14, stages=config.stages)
+    print('model taken from MSBR')
 
     model.build_nets()
+    print('Will return model')
 
 
     return model, train_loader, val_loader
@@ -267,10 +292,11 @@ def main(args):
 
 
 if __name__ == '__main__':
+    print('__name__ will start here')
 
     # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     args = parse()
-    import pdb; pdb.set_trace();
+
     model, train_loader, val_loader = main(args)
 
     if args.pretrained_d is not 'None' and args.val_dir is not None and config.test_interval != 0:
@@ -278,8 +304,9 @@ if __name__ == '__main__':
 
     global e
 
+    print('Start Epoch training')
     for e in range(args.n_epochs):
-
+        print('start for loop in line 308')
         train_loss_d, train_loss_f = train(model, args, train_loader)
 
         if args.val_dir is not None and config.test_interval != 0:
@@ -299,3 +326,5 @@ if __name__ == '__main__':
                 'epoch': e,
                 'state_dict': model.flownet.state_dict(),
             }, is_best_f, args.flownet_name)
+
+    print('Finish epoch training!')
